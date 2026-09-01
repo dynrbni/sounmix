@@ -1,44 +1,77 @@
 import { Router } from 'express'
-import { tracks, type Platform } from '../services/demoData.js'
+import { spotifyService } from '../services/spotifyService.js'
+import { appleMusicService } from '../services/appleMusicService.js'
+import { type Platform } from '../services/liveStore.js'
 
 export const tracksRouter = Router({ mergeParams: true })
 
-tracksRouter.get('/search', (request, response) => {
-  const query = String(request.query.q || '').toLowerCase()
-  const platform = request.query.platform as Platform | undefined
+tracksRouter.get('/search', async (request, response, next) => {
+  try {
+    const query = String(request.query.q || '')
+    const platform = request.query.platform as Platform | undefined
+    const isrc = request.query.isrc as string | undefined
 
-  let result = tracks
-  if (platform) {
-    result = result.filter((t) => t.platform === platform)
-  }
-  if (query) {
-    result = result.filter((t) =>
-      t.title.toLowerCase().includes(query) ||
-      t.artist.toLowerCase().includes(query) ||
-      t.album.toLowerCase().includes(query)
-    )
-  }
+    if (!query && !isrc) {
+      response.json({ success: true, data: [] })
+      return
+    }
 
-  response.json({ success: true, data: result })
+    if (platform === 'spotify') {
+      const results = await spotifyService.searchTrack(query, isrc)
+      response.json({ success: true, data: results })
+      return
+    }
+
+    if (platform === 'apple-music') {
+      const results = await appleMusicService.searchSong(query, isrc)
+      response.json({ success: true, data: results })
+      return
+    }
+
+    const [spotifyResults, appleResults] = await Promise.all([
+      spotifyService.searchTrack(query, isrc),
+      appleMusicService.searchSong(query, isrc),
+    ])
+
+    response.json({ success: true, data: [...spotifyResults, ...appleResults] })
+  } catch (error) {
+    next(error)
+  }
 })
 
-tracksRouter.get('/:platform/tracks', (request, response) => {
-  const platform = request.params.platform as Platform
-  const platformTracks = tracks.filter((item) => item.platform === platform || (!item.platform && platform === 'spotify'))
-  response.json({ success: true, data: platformTracks })
+tracksRouter.get('/:platform/tracks', async (request, response, next) => {
+  try {
+    const platform = request.params.platform as Platform
+    const query = String(request.query.q || 'hit')
+
+    const tracks = platform === 'spotify'
+      ? await spotifyService.searchTrack(query)
+      : await appleMusicService.searchSong(query)
+
+    response.json({ success: true, data: tracks })
+  } catch (error) {
+    next(error)
+  }
 })
 
-tracksRouter.get('/:platform/tracks/:trackId', (request, response) => {
-  const { platform, trackId } = request.params
-  const track = tracks.find((item) => item.id === trackId || item.platformTrackId === trackId)
+tracksRouter.get('/:platform/tracks/:trackId', async (request, response, next) => {
+  try {
+    const { platform, trackId } = request.params
+    const tracks = platform === 'spotify'
+      ? await spotifyService.searchTrack(trackId)
+      : await appleMusicService.searchSong(trackId)
 
-  if (!track) {
-    response.status(404).json({
-      success: false,
-      error: { code: 'TRACK_NOT_FOUND', message: `Track ${trackId} not found on ${platform}` },
-    })
-    return
+    const track = tracks[0]
+    if (!track) {
+      response.status(404).json({
+        success: false,
+        error: { code: 'TRACK_NOT_FOUND', message: `Track ${trackId} not found on ${platform}` },
+      })
+      return
+    }
+
+    response.json({ success: true, data: track })
+  } catch (error) {
+    next(error)
   }
-
-  response.json({ success: true, data: track })
 })
