@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2, KeyRound, Mail, Music2, ShieldCheck } from 'l
 type AuthPageProps = {
   mode: 'Login' | 'Register'
   onModeChange: (mode: 'Login' | 'Register') => void
-  onSuccess: () => void
+  onSuccess: (user?: { id: string; email: string; displayName?: string }) => void
 }
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1'
@@ -75,8 +75,11 @@ export function AuthPage({ mode, onModeChange, onSuccess }: AuthPageProps) {
       if (data.data?.token) {
         localStorage.setItem('sounmix_auth_token', data.data.token)
       }
+      if (data.data?.user) {
+        localStorage.setItem('sounmix_user', JSON.stringify(data.data.user))
+      }
 
-      onSuccess()
+      onSuccess(data.data?.user)
     } catch {
       setMessage('Invalid or expired OTP. Please try again.')
     } finally {
@@ -84,8 +87,8 @@ export function AuthPage({ mode, onModeChange, onSuccess }: AuthPageProps) {
     }
   }
 
-
   function handleOtpChange(index: number, e: React.ChangeEvent<HTMLInputElement>) {
+
     const rawVal = e.target.value.replace(/\D/g, '')
     const digit = rawVal.slice(-1)
 

@@ -8,37 +8,52 @@ import { TransferPage } from './pages/TransferPage'
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1'
 
+interface AuthUser {
+  id: string
+  email: string
+  displayName?: string
+}
+
+function getInitialUser(): AuthUser | null {
+  try {
+    const raw = localStorage.getItem('sounmix_user')
+    const token = localStorage.getItem('sounmix_auth_token')
+    if (token && raw) {
+      return JSON.parse(raw)
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 function App() {
-  const [user, setUser] = useState<{ id: string; email: string; displayName?: string } | null>(null)
-  const [route, setRoute] = useState<string>('Landing')
-  const [checkingAuth, setCheckingAuth] = useState(true)
+  const [user, setUser] = useState<AuthUser | null>(getInitialUser)
+  const [route, setRoute] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('connected') || params.get('error')) {
+      return 'Overview'
+    }
+    return getInitialUser() ? 'Overview' : 'Landing'
+  })
 
   useEffect(() => {
     async function checkAuthSession() {
       const token = localStorage.getItem('sounmix_auth_token')
-      const params = new URLSearchParams(window.location.search)
+      if (!token) return
 
       try {
-        const headers: Record<string, string> = {}
-        if (token) headers['Authorization'] = `Bearer ${token}`
-
         const res = await fetch(`${apiUrl}/auth/me`, {
-          headers,
+          headers: { Authorization: `Bearer ${token}` },
           credentials: 'include',
         }).then((r) => r.json())
 
         if (res.success && res.data) {
           setUser(res.data)
-          setRoute('Overview')
-        } else if (params.get('connected') || params.get('error')) {
-          setRoute('Overview')
+          localStorage.setItem('sounmix_user', JSON.stringify(res.data))
         }
-      } catch {
-        if (params.get('connected') || params.get('error')) {
-          setRoute('Overview')
-        }
-      } finally {
-        setCheckingAuth(false)
+      } catch (err) {
+        console.error('Session check error:', err)
       }
     }
 
@@ -47,6 +62,7 @@ function App() {
 
   async function handleLogout() {
     localStorage.removeItem('sounmix_auth_token')
+    localStorage.removeItem('sounmix_user')
     try {
       await fetch(`${apiUrl}/auth/logout`, { method: 'POST', credentials: 'include' })
     } catch {}
@@ -54,12 +70,12 @@ function App() {
     setRoute('Landing')
   }
 
-  if (checkingAuth) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-aura">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-pulse border-t-transparent" />
-      </div>
-    )
+  function handleLoginSuccess(loggedInUser?: AuthUser) {
+    if (loggedInUser) {
+      setUser(loggedInUser)
+      localStorage.setItem('sounmix_user', JSON.stringify(loggedInUser))
+    }
+    setRoute('Overview')
   }
 
   if (route === 'Landing' && !user) {
@@ -71,9 +87,7 @@ function App() {
       <AuthPage
         mode={route as 'Login' | 'Register'}
         onModeChange={setRoute}
-        onSuccess={() => {
-          setRoute('Overview')
-        }}
+        onSuccess={handleLoginSuccess}
       />
     )
   }
