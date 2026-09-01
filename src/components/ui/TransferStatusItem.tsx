@@ -1,0 +1,1 @@
+export function TransferStatusItem({ name, status }: { name: string; status: string }) { return <div className="flex items-center justify-between rounded-2xl bg-cloud p-4"><span className="font-bold">{name}</span><span className="text-xs font-black text-pulse">{status}</span></div> }
