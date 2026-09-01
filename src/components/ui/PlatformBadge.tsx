@@ -1,0 +1,1 @@
+export function PlatformBadge({ platform }: { platform: 'spotify' | 'apple-music' }) { return <span className="rounded-full bg-lilac px-3 py-1 text-xs font-black text-pulse">{platform === 'spotify' ? 'Spotify' : 'Apple Music'}</span> }
