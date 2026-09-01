@@ -24,7 +24,7 @@ export const config = {
   spotify: {
     get clientId() { return getEnv('SPOTIFY_CLIENT_ID') },
     get clientSecret() { return getEnv('SPOTIFY_CLIENT_SECRET') },
-    get redirectUri() { return getEnv('SPOTIFY_REDIRECT_URL', 'http://localhost:4000/api/v1/spotify/callback') },
+    get redirectUri() { return getEnv('SPOTIFY_REDIRECT_URI', 'http://localhost:4000/api/v1/spotify/callback') },
     scopes: [
       'user-read-private',
       'user-read-email',
