@@ -18,11 +18,19 @@ import { tracksRouter } from './routes/tracksRoutes.js'
 
 export const app = express()
 
-app.use(helmet())
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+)
 app.use(cors({ origin: config.allowedOrigins, credentials: true }))
 app.use(cookieParser())
 app.use(express.json({ limit: '1mb' }))
 app.use(authMiddleware)
+
 
 app.get('/api/v1/health', (_request, response) => {
   response.json({ success: true, data: { status: 'ok' } })
