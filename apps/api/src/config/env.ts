@@ -20,6 +20,8 @@ export const config = {
   otp: {
     expiresMinutes: Number(getEnv('OTP_EXPIRES_MINUTES', '10')),
   },
+  jwtSecret: getEnv('JWT_SECRET', 'sounmix_super_secret_jwt_key_2026_music_toolbox'),
+
   spotify: {
     clientId: getEnv('SPOTIFY_CLIENT_ID'),
     clientSecret: getEnv('SPOTIFY_CLIENT_SECRET'),
