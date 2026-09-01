@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Bell, Combine, History, LayoutDashboard, ListChecks, LogOut, Music2, Search, Settings, SlidersHorizontal } from 'lucide-react'
+import { ArrowRightLeft, Bell, Combine, Disc3, History, LayoutDashboard, ListChecks, LogOut, Music2, Search, Settings, SlidersHorizontal } from 'lucide-react'
 
 type DashboardLayoutProps = {
   activePage: string
@@ -9,6 +9,7 @@ type DashboardLayoutProps = {
 
 const navItems = [
   ['Overview', LayoutDashboard],
+  ['Preview', Disc3],
   ['Transfer', ArrowRightLeft],
   ['Organize', SlidersHorizontal],
   ['Duplicates', ListChecks],
@@ -53,7 +54,7 @@ export function DashboardLayout({ activePage, onNavigate, onLogout, children }: 
                 className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-left font-bold transition-all ${activePage === label ? 'bg-ink text-white shadow-card' : 'text-ink/58 hover:bg-white hover:text-ink'}`}
               >
                 <Icon size={18} />
-                {label}
+                {label === 'Preview' ? 'Playlist Preview' : label}
               </button>
             ))}
           </nav>

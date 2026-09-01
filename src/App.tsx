@@ -3,8 +3,10 @@ import { DashboardLayout } from './layouts/DashboardLayout'
 import { AuthPage } from './pages/AuthPage'
 import { LandingPage } from './pages/LandingPage'
 import { OverviewPage } from './pages/OverviewPage'
+import { PlaylistPreviewPage } from './pages/PlaylistPreviewPage'
 import { SimplePages } from './pages/SimplePages'
 import { TransferPage } from './pages/TransferPage'
+
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1'
 
@@ -95,10 +97,12 @@ function App() {
   return (
     <DashboardLayout activePage={route} onNavigate={setRoute} onLogout={handleLogout}>
       {route === 'Overview' && <OverviewPage onNavigate={setRoute} />}
+      {route === 'Preview' && <PlaylistPreviewPage onNavigate={setRoute} />}
       {route === 'Transfer' && <TransferPage />}
       {['Organize', 'Duplicates', 'Merge', 'History', 'Settings'].includes(route) && <SimplePages page={route} />}
     </DashboardLayout>
   )
+
 }
 
 export default App
