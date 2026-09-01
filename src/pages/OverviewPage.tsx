@@ -582,14 +582,41 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
             <div className="mt-4 space-y-4">
               {spotifyTab === 'token' && (
                 <div className="space-y-3">
-                  <p className="text-xs font-semibold text-ink/65 leading-relaxed">
-                    Paste your Spotify Web Access Token (from <code className="bg-cloud px-1.5 py-0.5 rounded font-mono text-[11px]">open.spotify.com</code> DevTools $\rightarrow$ Bearer Token) to pull <strong>all your private & public personal playlists</strong> instantly without developer approval!
-                  </p>
+                  <div className="rounded-2xl bg-cloud p-4 text-xs space-y-2">
+                    <p className="font-black text-ink flex items-center gap-1.5">
+                      <Sparkles size={15} className="text-emerald-600" /> Cara Ambil Token Spotify (Hanya 5 Detik):
+                    </p>
+                    <ol className="list-decimal pl-4 space-y-1 text-ink/70 font-semibold text-[11px] leading-relaxed">
+                      <li>Buka <a href="https://open.spotify.com" target="_blank" rel="noreferrer" className="text-emerald-700 underline font-bold">open.spotify.com</a> di browsermu (pastikan sudah login).</li>
+                      <li>Tekan <kbd className="bg-white px-1 py-0.5 rounded font-mono shadow-sm">F12</kbd> (atau Klik Kanan $\rightarrow$ <strong>Inspect</strong>) $\rightarrow$ pilih tab <strong>Console</strong>.</li>
+                      <li>Copy script 1 baris di bawah ini, paste ke Console Spotify, lalu tekan <kbd className="bg-white px-1 py-0.5 rounded font-mono shadow-sm">Enter</kbd>:</li>
+                    </ol>
+
+                    <div className="flex items-center gap-2 rounded-xl bg-white p-2 border border-ink/10">
+                      <code className="text-[10px] font-mono font-bold text-ink/80 flex-1 truncate select-all">
+                        (async()=&gt;&#123;const r=await fetch('/get_access_token?reason=transport&amp;productType=web_player');const d=await r.json();prompt('Copy Token:',d.accessToken)&#125;)();
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`(async()=>{const r=await fetch('/get_access_token?reason=transport&productType=web_player');const d=await r.json();prompt('Copy Token:',d.accessToken)})();`)
+                          setActionMsg('Script Console disalin ke clipboard! Paste di tab Console open.spotify.com.')
+                        }}
+                        className="rounded-lg bg-emerald-600 px-3 py-1 text-[11px] font-black text-white hover:bg-emerald-700 transition-all shrink-0"
+                      >
+                        Copy Script
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-ink/50 italic">
+                      *Popup akan otomatis muncul di Spotify menampilkan token <code className="font-bold">BQ...</code> kamu.
+                    </p>
+                  </div>
+
                   <textarea
                     rows={3}
                     value={spotifyToken}
                     onChange={(e) => setSpotifyToken(e.target.value)}
-                    placeholder="Paste Spotify Bearer Token (e.g. BQ...)..."
+                    placeholder="Paste Spotify Token kamu di sini (contoh: BQ...)..."
                     className="w-full rounded-2xl border border-ink/10 bg-cloud p-3 text-xs font-mono font-bold outline-none focus:border-emerald-500"
                   />
                   <button
@@ -597,10 +624,11 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
                     onClick={handleSpotifyTokenLogin}
                     className="w-full rounded-full bg-emerald-600 py-3.5 font-black text-white shadow-card hover:bg-emerald-700 disabled:opacity-50 transition-all text-xs"
                   >
-                    {connectingSpotify ? 'Fetching Playlists from Spotify...' : 'Authenticate & Load All Playlists'}
+                    {connectingSpotify ? 'Mengambil Semua Playlist Spotify Pribadimu...' : 'Authenticate & Tarik Semua Playlist'}
                   </button>
                 </div>
               )}
+
 
               {spotifyTab === 'oauth' && (
                 <div className="space-y-3">
