@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ArrowRight, CheckCircle2, KeyRound, Mail, Music2, ShieldCheck } from 'lucide-react'
 
 type AuthPageProps = {
@@ -17,6 +17,13 @@ export function AuthPage({ mode, onModeChange, onSuccess }: AuthPageProps) {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const otpComplete = otp.every(Boolean)
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([])
+
+  useEffect(() => {
+    if (step === 'otp') {
+      inputRefs.current[0]?.focus()
+    }
+  }, [step])
 
   async function sendOtp() {
     setLoading(true)
@@ -35,12 +42,11 @@ export function AuthPage({ mode, onModeChange, onSuccess }: AuthPageProps) {
       }
 
       setStep('otp')
-      if (data.data?.devOtp) {
-        setMessage(`OTP code sent! (Dev OTP: ${data.data.devOtp})`)
-      } else if (data.data?.previewUrl) {
-        setMessage(`OTP sent! Ethereal Preview: ${data.data.previewUrl}`)
+      setOtp(['', '', '', '', '', ''])
+      if (data.data?.devOtp && data.data?.deliveryMode !== 'smtp') {
+        setMessage(`OTP code generated: ${data.data.devOtp}`)
       } else {
-        setMessage('OTP has been sent to your email.')
+        setMessage(`OTP has been sent to ${email}. Please check your inbox or spam folder.`)
       }
     } catch (err) {
       setMessage((err as Error).message || 'Could not send OTP. Check your email and backend settings.')
@@ -48,7 +54,6 @@ export function AuthPage({ mode, onModeChange, onSuccess }: AuthPageProps) {
       setLoading(false)
     }
   }
-
 
   async function verifyOtp() {
     setLoading(true)
@@ -71,10 +76,52 @@ export function AuthPage({ mode, onModeChange, onSuccess }: AuthPageProps) {
     }
   }
 
-  function updateOtp(index: number, value: string) {
-    const next = [...otp]
-    next[index] = value.replace(/\D/g, '').slice(0, 1)
-    setOtp(next)
+  function handleOtpChange(index: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const rawVal = e.target.value.replace(/\D/g, '')
+    const digit = rawVal.slice(-1)
+
+    const nextOtp = [...otp]
+    nextOtp[index] = digit
+    setOtp(nextOtp)
+
+    if (digit && index < 5) {
+      inputRefs.current[index + 1]?.focus()
+    }
+  }
+
+  function handleOtpKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Backspace') {
+      if (!otp[index] && index > 0) {
+        const nextOtp = [...otp]
+        nextOtp[index - 1] = ''
+        setOtp(nextOtp)
+        inputRefs.current[index - 1]?.focus()
+      } else {
+        const nextOtp = [...otp]
+        nextOtp[index] = ''
+        setOtp(nextOtp)
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus()
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus()
+    }
+  }
+
+  function handleOtpPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    e.preventDefault()
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    if (!pastedData) return
+
+    const nextOtp = [...otp]
+    const digits = pastedData.split('')
+    digits.forEach((d, i) => {
+      if (i < 6) nextOtp[i] = d
+    })
+    setOtp(nextOtp)
+
+    const targetIndex = Math.min(digits.length, 5)
+    inputRefs.current[targetIndex]?.focus()
   }
 
   function switchMode(nextMode: 'Login' | 'Register') {
@@ -110,7 +157,22 @@ export function AuthPage({ mode, onModeChange, onSuccess }: AuthPageProps) {
           ) : (
             <div className="mt-7 grid gap-4">
               <div className="rounded-3xl bg-lilac p-5"><p className="flex items-center gap-2 font-black text-pulse"><KeyRound size={18} />6-digit OTP sent</p><p className="mt-2 text-sm font-semibold leading-6 text-ink/60">Enter the code sent to {email || 'your email'} to protect your account from unauthorized access.</p></div>
-              <div className="grid grid-cols-6 gap-2">{otp.map((digit, index) => <input key={index} value={digit} onChange={(event) => updateOtp(index, event.target.value)} inputMode="numeric" className="h-14 rounded-2xl border border-ink/10 bg-cloud text-center text-xl font-black outline-none focus:border-pulse" />)}</div>
+              <div className="grid grid-cols-6 gap-2">
+                {otp.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => { inputRefs.current[index] = el }}
+                    value={digit}
+                    onChange={(event) => handleOtpChange(index, event)}
+                    onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                    onPaste={handleOtpPaste}
+                    maxLength={1}
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    className="h-14 rounded-2xl border border-ink/10 bg-cloud text-center text-xl font-black outline-none transition-all focus:border-pulse focus:bg-white focus:shadow-sm"
+                  />
+                ))}
+              </div>
               <button disabled={!otpComplete || loading} onClick={verifyOtp} className="mt-2 flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-4 font-black text-white shadow-card disabled:opacity-40">{loading ? 'Verifying...' : 'Verify and enter'} <CheckCircle2 size={18} /></button>
               <div className="flex items-center justify-between text-sm font-bold text-ink/55"><button onClick={() => setStep('credentials')} className="text-pulse">Back</button><button onClick={sendOtp} className="text-pulse">Resend OTP</button></div>
             </div>
@@ -127,3 +189,4 @@ export function AuthPage({ mode, onModeChange, onSuccess }: AuthPageProps) {
 function SecurityItem({ icon, text }: { icon: React.ReactNode; text: string }) {
   return <div className="rounded-3xl bg-white/10 p-5"><p className="flex items-center gap-2 font-black">{icon}{text}</p></div>
 }
+
