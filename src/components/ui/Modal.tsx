@@ -1,0 +1,1 @@
+export function Modal({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) { if (!isOpen) return null; return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">{children}</div> }
