@@ -5,13 +5,54 @@ import { appleMusicService } from '../services/appleMusicService.js'
 import { spotifyEmbedService } from '../services/spotifyEmbedService.js'
 import { liveStore, type Platform, type LivePlaylist, type LiveTrack } from '../services/liveStore.js'
 
+import { appleMusicEmbedService } from '../services/appleMusicEmbedService.js'
+
 const importSchema = z.object({
   url: z.string().min(1),
 })
 
 export const playlistsRouter = Router({ mergeParams: true })
 
+playlistsRouter.post('/import-apple-music', async (request, response, next) => {
+  try {
+    const { url } = importSchema.parse(request.body)
+    const result = await appleMusicEmbedService.fetchPlaylistByUrlOrId(url)
+
+    if (!result) {
+      response.status(400).json({
+        success: false,
+        error: { code: 'INVALID_APPLE_MUSIC_URL', message: 'Could not fetch Apple Music playlist. Please check the URL or ID.' },
+      })
+      return
+    }
+
+    // Store in liveStore
+    liveStore.setPlaylist(result.playlist, result.tracks)
+
+    // Mark Apple Music account as connected
+    liveStore.setAccount('apple-music', {
+      id: 'acc_apple_open',
+      platform: 'apple-music',
+      name: 'Apple Music',
+      connected: true,
+      userDisplayName: result.playlist.name,
+    })
+
+    response.json({
+      success: true,
+      data: {
+        playlist: result.playlist,
+        trackCount: result.tracks.length,
+        message: `Successfully imported Apple Music playlist "${result.playlist.name}" with ${result.tracks.length} real tracks!`,
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 playlistsRouter.post('/import-url', async (request, response, next) => {
+
   try {
     const { url } = importSchema.parse(request.body)
     const result = await spotifyEmbedService.fetchPlaylistByUrlOrId(url)
