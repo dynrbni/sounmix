@@ -63,9 +63,17 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
     loadDashboardData()
   }, [])
 
-  function connectSpotify() {
+  async function connectSpotify() {
+    try {
+      const res = await fetch(`${apiUrl}/spotify/auth-url`).then((r) => r.json())
+      if (res.success && res.data?.url) {
+        window.location.href = res.data.url
+        return
+      }
+    } catch {}
     window.location.href = `${apiUrl}/spotify/login`
   }
+
 
   async function disconnectAccount(platform: 'spotify' | 'apple-music') {
     await fetch(`${apiUrl}/accounts/${platform}`, { method: 'DELETE' })
