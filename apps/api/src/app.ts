@@ -12,17 +12,22 @@ import { organizerRouter } from './routes/organizerRoutes.js'
 import { playlistsRouter } from './routes/playlistsRoutes.js'
 import { transfersRouter } from './routes/transfersRoutes.js'
 
+import cookieParser from 'cookie-parser'
+import { authMiddleware } from './middleware/authMiddleware.js'
 import { tracksRouter } from './routes/tracksRoutes.js'
 
 export const app = express()
 
 app.use(helmet())
 app.use(cors({ origin: config.allowedOrigins, credentials: true }))
+app.use(cookieParser())
 app.use(express.json({ limit: '1mb' }))
+app.use(authMiddleware)
 
 app.get('/api/v1/health', (_request, response) => {
   response.json({ success: true, data: { status: 'ok' } })
 })
+
 
 app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/accounts', accountsRouter)
