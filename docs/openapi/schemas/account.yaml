@@ -1,0 +1,9 @@
+components:
+  schemas:
+    Account:
+      type: object
+      properties:
+        id: { type: string }
+        platform: { type: string, enum: [spotify, apple-music] }
+        name: { type: string }
+        connected: { type: boolean }
