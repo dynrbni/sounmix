@@ -40,6 +40,7 @@ export interface LiveTrack {
   isrc?: string
   explicit?: boolean
   coverUrl?: string | null
+  previewUrl?: string | null
   uri?: string
 }
 
@@ -83,12 +84,10 @@ export interface OperationLog {
 
 class LiveStore {
   public accounts = new Map<Platform, ConnectedAccount>()
+  public playlists = new Map<string, LivePlaylist>()
+  public playlistTracks = new Map<string, LiveTrack[]>()
   public transferJobs = new Map<string, TransferJob>()
   public operations: OperationLog[] = []
-
-  constructor() {
-    // Initial empty state or connected flags
-  }
 
   getAccount(platform: Platform): ConnectedAccount | undefined {
     return this.accounts.get(platform)
@@ -118,6 +117,23 @@ class LiveStore {
       },
     ]
     return list
+  }
+
+  setPlaylist(playlist: LivePlaylist, tracks?: LiveTrack[]): void {
+    this.playlists.set(playlist.id, playlist)
+    this.playlists.set(playlist.platformPlaylistId, playlist)
+    if (tracks) {
+      this.playlistTracks.set(playlist.id, tracks)
+      this.playlistTracks.set(playlist.platformPlaylistId, tracks)
+    }
+  }
+
+  getAllPlaylists(): LivePlaylist[] {
+    return Array.from(new Map(Array.from(this.playlists.values()).map((p) => [p.platformPlaylistId, p])).values())
+  }
+
+  getPlaylistTracks(playlistId: string): LiveTrack[] | undefined {
+    return this.playlistTracks.get(playlistId)
   }
 }
 
