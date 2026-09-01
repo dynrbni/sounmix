@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowRight, CheckCircle2, Music2, Plus, ShieldCheck, XCircle } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Link2, Music2, Plus, ShieldCheck, Sparkles } from 'lucide-react'
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1'
 
@@ -39,27 +39,27 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([])
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [operations, setOperations] = useState<Operation[]>([])
-  const [loading, setLoading] = useState(true)
+  const [importUrl, setImportUrl] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importMsg, setImportMsg] = useState('')
+
+  async function loadDashboardData() {
+    try {
+      const [accRes, plRes, opRes] = await Promise.all([
+        fetch(`${apiUrl}/accounts`).then((r) => r.json()),
+        fetch(`${apiUrl}/playlists`).then((r) => r.json()),
+        fetch(`${apiUrl}/operations`).then((r) => r.json()),
+      ])
+
+      if (accRes.success) setAccounts(accRes.data)
+      if (plRes.success) setPlaylists(plRes.data)
+      if (opRes.success) setOperations(opRes.data)
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err)
+    }
+  }
 
   useEffect(() => {
-    async function loadDashboardData() {
-      try {
-        const [accRes, plRes, opRes] = await Promise.all([
-          fetch(`${apiUrl}/accounts`).then((r) => r.json()),
-          fetch(`${apiUrl}/playlists`).then((r) => r.json()),
-          fetch(`${apiUrl}/operations`).then((r) => r.json()),
-        ])
-
-        if (accRes.success) setAccounts(accRes.data)
-        if (plRes.success) setPlaylists(plRes.data)
-        if (opRes.success) setOperations(opRes.data)
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadDashboardData()
   }, [])
 
@@ -74,11 +74,37 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
     window.location.href = `${apiUrl}/spotify/login`
   }
 
+  async function handleImportUrl(urlToImport?: string) {
+    const target = urlToImport || importUrl
+    if (!target) return
+
+    setImporting(true)
+    setImportMsg('')
+
+    try {
+      const res = await fetch(`${apiUrl}/playlists/import-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: target }),
+      }).then((r) => r.json())
+
+      if (res.success) {
+        setImportMsg(res.data.message)
+        setImportUrl('')
+        await loadDashboardData()
+      } else {
+        setImportMsg(res.error?.message || 'Failed to import Spotify playlist.')
+      }
+    } catch {
+      setImportMsg('Could not connect to backend.')
+    } finally {
+      setImporting(false)
+    }
+  }
 
   async function disconnectAccount(platform: 'spotify' | 'apple-music') {
     await fetch(`${apiUrl}/accounts/${platform}`, { method: 'DELETE' })
-    const accRes = await fetch(`${apiUrl}/accounts`).then((r) => r.json())
-    if (accRes.success) setAccounts(accRes.data)
+    await loadDashboardData()
   }
 
   const spotifyAcc = accounts.find((a) => a.platform === 'spotify')
@@ -91,23 +117,87 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
       <div className="overflow-hidden rounded-[2.25rem] bg-ink p-7 text-white shadow-soft md:p-9">
         <div className="grid gap-8 lg:grid-cols-[1fr_360px] lg:items-center">
           <div>
-            <p className="font-black text-mint">Live Music Toolbox</p>
+            <p className="font-black text-mint">Live Music Toolbox (Zero Premium Needed)</p>
             <h1 className="mt-3 text-4xl font-black tracking-[-0.04em] md:text-6xl">Your music dashboard, made simple.</h1>
-            <p className="mt-4 max-w-2xl leading-8 text-white/64">Connect Spotify and Apple Music accounts directly to transfer, clean, and organize your real playlists without dummy data.</p>
+            <p className="mt-4 max-w-2xl leading-8 text-white/64">
+              Sync real Spotify playlists directly by link or account without requiring Spotify Premium. Transfer, deduplicate, and organize your real songs.
+            </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <button onClick={() => onNavigate?.('Transfer')} className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 font-black text-ink hover:opacity-90">Start transfer <ArrowRight size={17} /></button>
-              <button onClick={() => onNavigate?.('Duplicates')} className="rounded-full bg-white/10 px-5 py-3 font-black text-white hover:bg-white/20">Scan duplicates</button>
+              <button onClick={() => onNavigate?.('Transfer')} className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 font-black text-ink hover:opacity-90">
+                Start transfer <ArrowRight size={17} />
+              </button>
+              <button onClick={() => onNavigate?.('Duplicates')} className="rounded-full bg-white/10 px-5 py-3 font-black text-white hover:bg-white/20">
+                Scan duplicates
+              </button>
             </div>
           </div>
           <div className="rounded-[1.8rem] bg-white/10 p-5">
             <p className="font-black text-white/70">Library Health</p>
             <div className="mt-5 space-y-4">
               <Progress label="Connected platforms" value={`${connectedCount}/2`} width={connectedCount === 2 ? 'w-full' : connectedCount === 1 ? 'w-1/2' : 'w-0'} />
-              <Progress label="Synced tracks" value={`${totalTracks} tracks`} width="w-4/5" />
+              <Progress label="Synced tracks" value={`${totalTracks} real tracks`} width="w-4/5" />
               <Progress label="Transfer success" value="98%" width="w-[98%]" />
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Direct Playlist Link Import */}
+      <div className="rounded-[2rem] border border-white/80 bg-white/78 p-6 shadow-card backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-xl font-black"><Sparkles className="text-pulse" size={20} />Sync Spotify Playlist (No Premium Required)</h2>
+            <p className="mt-1 text-sm font-semibold text-ink/50">Paste any Spotify playlist link to extract and track 100% real songs instantly.</p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Link2 className="absolute left-4 top-3.5 text-ink/40" size={18} />
+            <input
+              type="text"
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              placeholder="https://open.spotify.com/playlist/... or playlist ID"
+              className="w-full rounded-2xl border border-ink/10 bg-cloud pl-11 pr-4 py-3 text-sm font-bold outline-none focus:border-pulse"
+            />
+          </div>
+          <button
+            disabled={importing || !importUrl}
+            onClick={() => handleImportUrl()}
+            className="rounded-full bg-ink px-6 py-3 font-black text-white shadow-card transition-all hover:bg-pulse disabled:opacity-40"
+          >
+            {importing ? 'Importing Real Tracks...' : 'Sync Playlist'}
+          </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-black text-ink/40">Try popular real playlists:</span>
+          <button
+            onClick={() => handleImportUrl('37i9dQZF1DXcBWIGoYBM5M')}
+            className="rounded-full bg-lilac px-3 py-1 text-xs font-bold text-pulse hover:bg-pulse hover:text-white"
+          >
+            Today’s Top Hits (50 songs)
+          </button>
+          <button
+            onClick={() => handleImportUrl('37i9dQZF1DX0XUsuxWHRQd')}
+            className="rounded-full bg-lilac px-3 py-1 text-xs font-bold text-pulse hover:bg-pulse hover:text-white"
+          >
+            RapCaviar
+          </button>
+          <button
+            onClick={() => handleImportUrl('37i9dQZF1DX4WYpdgoIcn6')}
+            className="rounded-full bg-lilac px-3 py-1 text-xs font-bold text-pulse hover:bg-pulse hover:text-white"
+          >
+            Chill Hits
+          </button>
+        </div>
+
+        {importMsg && (
+          <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-xs font-black text-emerald-700">
+            {importMsg}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-5 md:grid-cols-3">
@@ -181,10 +271,13 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
 
       <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
         <div className="rounded-[2rem] border border-white/80 bg-white/78 p-6 shadow-card backdrop-blur-xl">
-          <h2 className="text-xl font-black">Your Live Playlists</h2>
+          <h2 className="text-xl font-black">Your Synced Real Playlists</h2>
           <div className="mt-5 space-y-3">
             {playlists.length === 0 ? (
-              <p className="py-8 text-center text-sm font-bold text-ink/40">No playlists loaded yet. Connect your Spotify or Apple Music account above.</p>
+              <div className="py-8 text-center">
+                <p className="text-sm font-bold text-ink/40">No playlists synced yet.</p>
+                <p className="mt-1 text-xs text-ink/30">Paste any Spotify playlist link above to load real songs without Spotify Premium.</p>
+              </div>
             ) : (
               playlists.map((playlist) => (
                 <div key={playlist.id} className="grid gap-4 rounded-3xl bg-cloud p-4 md:grid-cols-[1fr_auto_auto] md:items-center">
