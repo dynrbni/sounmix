@@ -1,0 +1,8 @@
+components:
+  schemas:
+    OrganizerRequest:
+      type: object
+      properties:
+        sourcePlaylistId: { type: string }
+        destinationPlaylistId: { type: string }
+        artist: { type: string }
