@@ -1,0 +1,2 @@
+-- Migration part 02
+-- Sounmix database schema optimization
