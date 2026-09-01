@@ -64,9 +64,17 @@ export function AuthPage({ mode, onModeChange, onSuccess }: AuthPageProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp: otp.join('') }),
+        credentials: 'include',
       })
 
-      if (!response.ok) throw new Error('Invalid OTP')
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data.error?.message || 'Invalid OTP')
+      }
+
+      if (data.data?.token) {
+        localStorage.setItem('sounmix_auth_token', data.data.token)
+      }
 
       onSuccess()
     } catch {
@@ -75,6 +83,7 @@ export function AuthPage({ mode, onModeChange, onSuccess }: AuthPageProps) {
       setLoading(false)
     }
   }
+
 
   function handleOtpChange(index: number, e: React.ChangeEvent<HTMLInputElement>) {
     const rawVal = e.target.value.replace(/\D/g, '')
