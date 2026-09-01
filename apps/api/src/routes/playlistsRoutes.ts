@@ -179,6 +179,27 @@ playlistsRouter.get('/:platform/playlists/:playlistId/tracks', async (request, r
   }
 })
 
+playlistsRouter.delete('/clear/all', (_request, response) => {
+  liveStore.playlists.clear()
+  liveStore.playlistTracks.clear()
+  response.json({ success: true, message: 'All playlists cleared' })
+})
+
+playlistsRouter.delete('/:id', (request, response) => {
+  const { id } = request.params
+  const cleanId = id.replace(/^spotify_/, '').replace(/^apple_/, '')
+  liveStore.playlists.delete(id)
+  liveStore.playlists.delete(cleanId)
+  liveStore.playlists.delete(`spotify_${cleanId}`)
+  liveStore.playlists.delete(`apple_${cleanId}`)
+  liveStore.playlistTracks.delete(id)
+  liveStore.playlistTracks.delete(cleanId)
+  liveStore.playlistTracks.delete(`spotify_${cleanId}`)
+  liveStore.playlistTracks.delete(`apple_${cleanId}`)
+  response.json({ success: true, message: 'Playlist deleted' })
+})
+
+
 playlistsRouter.get('/:platform/tracks/:trackId', async (request, response, next) => {
   try {
     const { platform, trackId } = request.params

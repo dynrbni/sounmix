@@ -39,12 +39,22 @@ accountsRouter.get('/spotify/callback', async (request, response) => {
   }
 
   try {
-    await spotifyService.exchangeCode(code)
+    const account = await spotifyService.exchangeCode(code)
+    try {
+      const personalPlaylists = await spotifyService.getUserPlaylists()
+      for (const pl of personalPlaylists) {
+        liveStore.setPlaylist(pl)
+      }
+    } catch (err) {
+      console.error('Error fetching personal Spotify playlists:', err)
+    }
+
     response.redirect(`${config.appUrl}/?connected=spotify`)
   } catch (err) {
     response.redirect(`${config.appUrl}/?error=${encodeURIComponent((err as Error).message)}`)
   }
 })
+
 
 accountsRouter.post('/apple-music/connect', async (request, response, next) => {
   try {
