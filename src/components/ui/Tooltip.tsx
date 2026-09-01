@@ -1,0 +1,1 @@
+export function Tooltip({ text, children }: { text: string; children: React.ReactNode }) { return <div className="group relative">{children}<span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-lg bg-ink px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">{text}</span></div> }
