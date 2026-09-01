@@ -4,13 +4,14 @@ import { playlistTracks, playlists, tracks, type Platform } from '../services/de
 export const playlistsRouter = Router({ mergeParams: true })
 
 playlistsRouter.get('/', (request, response) => {
-  const platform = request.params.platform as Platform | undefined
+  const platform = (request.params as Record<string, string>).platform as Platform | undefined
   if (platform) {
     response.json({ success: true, data: playlists.filter((playlist) => playlist.platform === platform) })
   } else {
     response.json({ success: true, data: playlists })
   }
 })
+
 
 playlistsRouter.get('/:platform/playlists', (request, response) => {
   const platform = request.params.platform as Platform
