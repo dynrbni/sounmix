@@ -582,34 +582,18 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
             <div className="mt-4 space-y-4">
               {spotifyTab === 'token' && (
                 <div className="space-y-3">
-                  <div className="rounded-2xl bg-cloud p-4 text-xs space-y-2">
+                  <div className="rounded-2xl bg-cloud p-4 text-xs space-y-2.5">
                     <p className="font-black text-ink flex items-center gap-1.5">
-                      <Sparkles size={15} className="text-emerald-600" /> Cara Ambil Token Spotify (Hanya 5 Detik):
+                      <Sparkles size={15} className="text-emerald-600" /> Cara Ambil Token Spotify dari Tab Network (Paling Mudah & Pasti Berhasil):
                     </p>
-                    <ol className="list-decimal pl-4 space-y-1 text-ink/70 font-semibold text-[11px] leading-relaxed">
-                      <li>Buka <a href="https://open.spotify.com" target="_blank" rel="noreferrer" className="text-emerald-700 underline font-bold">open.spotify.com</a> di browsermu (pastikan sudah login).</li>
-                      <li>Tekan <kbd className="bg-white px-1 py-0.5 rounded font-mono shadow-sm">F12</kbd> (atau Klik Kanan $\rightarrow$ <strong>Inspect</strong>) $\rightarrow$ pilih tab <strong>Console</strong>.</li>
-                      <li>Copy script 1 baris di bawah ini, paste ke Console Spotify, lalu tekan <kbd className="bg-white px-1 py-0.5 rounded font-mono shadow-sm">Enter</kbd>:</li>
+                    <ol className="list-decimal pl-4 space-y-1.5 text-ink/75 font-semibold text-[11px] leading-relaxed">
+                      <li>Buka <a href="https://open.spotify.com" target="_blank" rel="noreferrer" className="text-emerald-700 underline font-bold">open.spotify.com</a> di browsermu (pastikan sudah login akun Spotify-mu).</li>
+                      <li>Tekan <kbd className="bg-white px-1.5 py-0.5 rounded font-mono shadow-sm">F12</kbd> (atau Klik Kanan $\rightarrow$ pilih <strong>Inspect</strong>) $\rightarrow$ klik tab <strong>Network</strong>.</li>
+                      <li>Di kotak filter/pencarian Network di bagian atas, ketik: <code className="bg-white px-1.5 py-0.5 rounded font-bold font-mono text-emerald-700">pathfinder</code> atau <code className="bg-white px-1.5 py-0.5 rounded font-bold font-mono text-emerald-700">me</code>.</li>
+                      <li>Klik salah satu lagu atau refresh halaman Spotify $\rightarrow$ akan muncul request di daftar Network.</li>
+                      <li>Klik request tersebut $\rightarrow$ di panel kanan buka tab <strong>Headers</strong> $\rightarrow$ scroll ke <strong>Request Headers</strong> $\rightarrow$ cari baris <code className="font-bold">authorization: Bearer BQ...</code>.</li>
+                      <li>Copy kode panjang setelah kata <code className="font-mono font-bold">Bearer</code> (yang diawali <strong>BQ...</strong>) lalu paste ke kotak di bawah ini!</li>
                     </ol>
-
-                    <div className="flex items-center gap-2 rounded-xl bg-white p-2 border border-ink/10">
-                      <code className="text-[10px] font-mono font-bold text-ink/80 flex-1 truncate select-all">
-                        (async()=&gt;&#123;const r=await fetch('/get_access_token?reason=transport&amp;productType=web_player');const d=await r.json();prompt('Copy Token:',d.accessToken)&#125;)();
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`(async()=>{const r=await fetch('/get_access_token?reason=transport&productType=web_player');const d=await r.json();prompt('Copy Token:',d.accessToken)})();`)
-                          setActionMsg('Script Console disalin ke clipboard! Paste di tab Console open.spotify.com.')
-                        }}
-                        className="rounded-lg bg-emerald-600 px-3 py-1 text-[11px] font-black text-white hover:bg-emerald-700 transition-all shrink-0"
-                      >
-                        Copy Script
-                      </button>
-                    </div>
-                    <p className="text-[10px] text-ink/50 italic">
-                      *Popup akan otomatis muncul di Spotify menampilkan token <code className="font-bold">BQ...</code> kamu.
-                    </p>
                   </div>
 
                   <textarea
@@ -628,6 +612,7 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
                   </button>
                 </div>
               )}
+
 
 
               {spotifyTab === 'oauth' && (
