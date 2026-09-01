@@ -7,7 +7,13 @@ import { SimplePages } from './pages/SimplePages'
 import { TransferPage } from './pages/TransferPage'
 
 function App() {
-  const [route, setRoute] = useState('Landing')
+  const [route, setRoute] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('connected') || params.get('error')) {
+      return 'Overview'
+    }
+    return 'Landing'
+  })
 
   if (route === 'Landing') {
     return <LandingPage onGetStarted={() => setRoute('Register')} />
@@ -19,11 +25,12 @@ function App() {
 
   return (
     <DashboardLayout activePage={route} onNavigate={setRoute}>
-      {route === 'Overview' && <OverviewPage />}
+      {route === 'Overview' && <OverviewPage onNavigate={setRoute} />}
       {route === 'Transfer' && <TransferPage />}
       {['Organize', 'Duplicates', 'Merge', 'History', 'Settings'].includes(route) && <SimplePages page={route} />}
     </DashboardLayout>
   )
 }
+
 
 export default App
