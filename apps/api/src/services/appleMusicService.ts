@@ -6,8 +6,15 @@ export class AppleMusicService {
     return config.appleMusic.developerToken
   }
 
-  async connectAccount(musicUserToken?: string, storefront = 'us'): Promise<ConnectedAccount> {
-    const token = musicUserToken || `apple_user_token_${Date.now()}`
+  async connectAccount(options?: {
+    musicUserToken?: string
+    storefront?: string
+    userDisplayName?: string
+    email?: string
+  }): Promise<ConnectedAccount> {
+    const token = options?.musicUserToken || `apple_user_token_${Date.now()}`
+    const displayName = options?.userDisplayName || (options?.email ? options.email.split('@')[0] : 'Apple Music User')
+
     const account: ConnectedAccount = {
       id: `acc_apple_${Date.now()}`,
       platform: 'apple-music',
@@ -15,12 +22,14 @@ export class AppleMusicService {
       connected: true,
       musicUserToken: token,
       scopes: ['music-library', 'user-read'],
-      userDisplayName: 'Apple Music User',
+      userDisplayName: displayName,
+      email: options?.email,
     }
 
     liveStore.setAccount('apple-music', account)
     return account
   }
+
 
   async getUserPlaylists(): Promise<LivePlaylist[]> {
     const account = liveStore.getAccount('apple-music')

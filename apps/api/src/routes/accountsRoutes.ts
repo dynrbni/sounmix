@@ -35,13 +35,19 @@ accountsRouter.get('/spotify/callback', async (request, response) => {
 
 accountsRouter.post('/apple-music/connect', async (request, response, next) => {
   try {
-    const { musicUserToken, storefront } = request.body
-    const account = await appleMusicService.connectAccount(musicUserToken || 'demo_token', storefront)
+    const { userDisplayName, email, musicUserToken, storefront } = request.body
+    const account = await appleMusicService.connectAccount({
+      musicUserToken,
+      storefront,
+      userDisplayName,
+      email,
+    })
     response.json({ success: true, data: account })
   } catch (error) {
     next(error)
   }
 })
+
 
 accountsRouter.get('/', (_request, response) => {
   const accountsList = liveStore.getAllAccounts()
