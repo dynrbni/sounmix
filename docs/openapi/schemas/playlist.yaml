@@ -1,0 +1,9 @@
+components:
+  schemas:
+    Playlist:
+      type: object
+      properties:
+        id: { type: string }
+        platform: { type: string }
+        name: { type: string }
+        trackCount: { type: integer }
