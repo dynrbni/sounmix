@@ -1,0 +1,1 @@
+export function ProgressBar({ progress }: { progress: number }) { return <div className="h-3 w-full overflow-hidden rounded-full bg-cloud"><div className="h-full bg-pulse transition-all duration-300" style={{ width: `${progress}%` }} /></div> }
