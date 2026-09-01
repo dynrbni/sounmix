@@ -20,5 +20,26 @@ export const config = {
   otp: {
     expiresMinutes: Number(getEnv('OTP_EXPIRES_MINUTES', '10')),
   },
+  spotify: {
+    clientId: getEnv('SPOTIFY_CLIENT_ID'),
+    clientSecret: getEnv('SPOTIFY_CLIENT_SECRET'),
+    redirectUri: getEnv('SPOTIFY_REDIRECT_URI', 'http://localhost:4000/api/v1/spotify/callback'),
+    scopes: [
+      'user-read-private',
+      'user-read-email',
+      'playlist-read-private',
+      'playlist-read-collaborative',
+      'playlist-modify-public',
+      'playlist-modify-private',
+      'user-library-read',
+      'user-library-modify',
+    ].join(' '),
+  },
+  appleMusic: {
+    developerToken: getEnv('APPLE_DEVELOPER_TOKEN'),
+    teamId: getEnv('APPLE_TEAM_ID'),
+    keyId: getEnv('APPLE_KEY_ID'),
+  },
 }
+
 
