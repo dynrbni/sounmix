@@ -1,8 +1,9 @@
-import { ArrowRightLeft, Bell, Combine, History, LayoutDashboard, ListChecks, Music2, Search, Settings, SlidersHorizontal } from 'lucide-react'
+import { ArrowRightLeft, Bell, Combine, History, LayoutDashboard, ListChecks, LogOut, Music2, Search, Settings, SlidersHorizontal } from 'lucide-react'
 
 type DashboardLayoutProps = {
   activePage: string
   onNavigate: (page: string) => void
+  onLogout?: () => void
   children: React.ReactNode
 }
 
@@ -16,7 +17,7 @@ const navItems = [
   ['Settings', Settings],
 ] as const
 
-export function DashboardLayout({ activePage, onNavigate, children }: DashboardLayoutProps) {
+export function DashboardLayout({ activePage, onNavigate, onLogout, children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-aura text-ink">
       <header className="sticky top-0 z-20 border-b border-white/70 bg-white/60 px-5 py-4 backdrop-blur-xl md:px-8">
@@ -28,8 +29,14 @@ export function DashboardLayout({ activePage, onNavigate, children }: DashboardL
           <div className="ml-auto hidden w-full max-w-md items-center gap-2 rounded-full bg-cloud px-4 py-3 text-sm font-semibold text-ink/45 md:flex">
             <Search size={17} /> Search playlists, tracks, operations
           </div>
-          <button className="grid h-11 w-11 place-items-center rounded-full bg-white shadow-sm"><Bell size={18} /></button>
-          <div className="rounded-full bg-ink px-4 py-2 text-sm font-black text-white">Profile</div>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-rose-600 shadow-sm transition-all hover:bg-rose-50"
+            >
+              <LogOut size={15} /> Logout
+            </button>
+          )}
         </div>
       </header>
       <div className="mx-auto grid max-w-7xl gap-6 px-5 py-6 md:grid-cols-[250px_1fr] md:px-8">
@@ -43,7 +50,7 @@ export function DashboardLayout({ activePage, onNavigate, children }: DashboardL
               <button
                 key={label}
                 onClick={() => onNavigate(label)}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-left font-bold ${activePage === label ? 'bg-ink text-white shadow-card' : 'text-ink/58 hover:bg-white hover:text-ink'}`}
+                className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-left font-bold transition-all ${activePage === label ? 'bg-ink text-white shadow-card' : 'text-ink/58 hover:bg-white hover:text-ink'}`}
               >
                 <Icon size={18} />
                 {label}
