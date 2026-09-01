@@ -1,0 +1,1 @@
+export function PlaylistCard({ name, count }: { name: string; count: number }) { return <div className="rounded-3xl border border-ink/10 bg-white p-5"><h3 className="font-black">{name}</h3><p className="text-xs text-ink/50">{count} tracks</p></div> }
