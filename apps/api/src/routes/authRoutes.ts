@@ -10,9 +10,18 @@ const emailSchema = z.object({
   email: z.string().email(),
 })
 
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1, 'Password is required'),
+})
+
 const verifySchema = emailSchema.extend({
   otp: z.string().regex(/^\d{6}$/),
+  password: z.string().optional(),
 })
+
+// In-memory store for registered users
+const registeredUsers = new Map<string, { email: string; password?: string; displayName: string }>()
 
 export const authRouter = Router()
 
@@ -45,6 +54,60 @@ authRouter.get('/me', (request: AuthenticatedRequest, response) => {
   })
 })
 
+// Direct login with email and password (NO OTP)
+authRouter.post('/login', (request, response, next) => {
+  try {
+    const { email, password } = loginSchema.parse(request.body)
+    const existing = registeredUsers.get(email.toLowerCase())
+
+    if (existing && existing.password && existing.password !== password) {
+      response.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_CREDENTIALS',
+          message: 'Incorrect password',
+        },
+      })
+      return
+    }
+
+    const displayName = existing?.displayName || email.split('@')[0]
+    if (!existing) {
+      registeredUsers.set(email.toLowerCase(), { email, password, displayName })
+    }
+
+    const token = signUserToken({
+      userId: email,
+      email,
+      displayName,
+    })
+
+    // Set 7-day cookie
+    response.cookie('sounmix_token', token, {
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: false,
+      sameSite: 'lax',
+      path: '/',
+    })
+
+    response.json({
+      success: true,
+      data: {
+        token,
+        user: {
+          id: email,
+          email,
+          displayName,
+        },
+        message: 'Logged in successfully',
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Send OTP for Register
 authRouter.post('/otp/send', async (request, response, next) => {
   try {
     const { email } = emailSchema.parse(request.body)
@@ -67,9 +130,10 @@ authRouter.post('/otp/send', async (request, response, next) => {
   }
 })
 
+// Verify OTP for Register only
 authRouter.post('/otp/verify', (request, response, next) => {
   try {
-    const { email, otp } = verifySchema.parse(request.body)
+    const { email, otp, password } = verifySchema.parse(request.body)
     const result = verifyOtpChallenge(email, otp)
 
     if (!result.ok) {
@@ -84,6 +148,8 @@ authRouter.post('/otp/verify', (request, response, next) => {
     }
 
     const displayName = email.split('@')[0]
+    registeredUsers.set(email.toLowerCase(), { email, password, displayName })
+
     const token = signUserToken({
       userId: email,
       email,
@@ -98,7 +164,6 @@ authRouter.post('/otp/verify', (request, response, next) => {
       path: '/',
     })
 
-
     response.json({
       success: true,
       data: {
@@ -108,7 +173,7 @@ authRouter.post('/otp/verify', (request, response, next) => {
           email,
           displayName,
         },
-        message: 'OTP verified successfully',
+        message: 'Registration completed and verified successfully',
       },
     })
   } catch (error) {
