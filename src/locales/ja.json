@@ -1,0 +1,6 @@
+{
+  "auth.welcome": "Sounmixへようこそ",
+  "auth.otpSent": "OTPコードがメールに送信されました",
+  "dashboard.overview": "概要",
+  "dashboard.transfer": "プレイリストを転送"
+}
