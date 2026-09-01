@@ -3,7 +3,7 @@ import { liveStore, type ConnectedAccount, type LivePlaylist, type LiveTrack } f
 
 export class AppleMusicService {
   private get developerToken(): string {
-    return config.appleMusic.developerToken || 'demo_apple_dev_token'
+    return config.appleMusic.developerToken
   }
 
   async connectAccount(musicUserToken: string, storefront = 'us'): Promise<ConnectedAccount> {
@@ -26,11 +26,8 @@ export class AppleMusicService {
     if (!account || !account.connected) return []
 
     const userToken = account.musicUserToken
-    if (!userToken || userToken === 'demo_token') {
-      return [
-        { id: 'pl_apple_1', platform: 'apple-music', platformPlaylistId: 'apple_1', name: 'My Chill Mix', trackCount: 35, owner: 'You', isPublic: false, imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300' },
-        { id: 'pl_apple_2', platform: 'apple-music', platformPlaylistId: 'apple_2', name: 'Road Trip Essentials', trackCount: 50, owner: 'You', isPublic: false, imageUrl: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300' },
-      ]
+    if (!userToken || !this.developerToken) {
+      return []
     }
 
     try {
@@ -42,7 +39,7 @@ export class AppleMusicService {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch Apple Music playlists')
+        return []
       }
 
       const data = await response.json()
@@ -69,11 +66,8 @@ export class AppleMusicService {
     const userToken = account?.musicUserToken
     const cleanId = platformPlaylistId.replace(/^apple_/, '')
 
-    if (!userToken || userToken === 'demo_token') {
-      return [
-        { id: `tr_apple_${cleanId}_1`, platform: 'apple-music', platformTrackId: 'apple_track_1', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', durationMs: 200000, isrc: 'USUG11904206', explicit: false, coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300' },
-        { id: `tr_apple_${cleanId}_2`, platform: 'apple-music', platformTrackId: 'apple_track_2', title: 'Starboy', artist: 'The Weeknd', album: 'Starboy', durationMs: 230000, isrc: 'USUG11601743', explicit: true, coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300' },
-      ]
+    if (!userToken || !this.developerToken) {
+      return []
     }
 
     try {
@@ -85,7 +79,7 @@ export class AppleMusicService {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch Apple Music playlist tracks')
+        return []
       }
 
       const data = await response.json()
@@ -109,6 +103,8 @@ export class AppleMusicService {
   }
 
   async searchSong(query: string, isrc?: string, storefront = 'us'): Promise<LiveTrack[]> {
+    if (!this.developerToken) return []
+
     try {
       const endpoint = isrc
         ? `https://api.music.apple.com/v1/catalog/${storefront}/songs?filter[isrc]=${encodeURIComponent(isrc)}`

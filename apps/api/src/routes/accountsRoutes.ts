@@ -81,13 +81,13 @@ accountsRouter.get('/:platform', (request, response) => {
 accountsRouter.post('/:platform/connect', async (request, response) => {
   const platform = request.params.platform as Platform
   if (platform === 'spotify') {
-    const account = await spotifyService.exchangeCode('demo_code')
-    response.json({ success: true, data: account })
+    const url = spotifyService.getAuthUrl()
+    response.json({ success: true, data: { url, message: 'Redirect to Spotify OAuth' } })
   } else {
-    const account = await appleMusicService.connectAccount('demo_token')
-    response.json({ success: true, data: account })
+    response.json({ success: true, data: { message: 'Use Apple MusicKit JS authorization' } })
   }
 })
+
 
 accountsRouter.delete('/:platform', (request, response) => {
   const platform = request.params.platform as Platform

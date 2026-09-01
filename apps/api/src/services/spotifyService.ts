@@ -3,11 +3,11 @@ import { liveStore, type ConnectedAccount, type LivePlaylist, type LiveTrack } f
 
 export class SpotifyService {
   private get clientId(): string {
-    return config.spotify.clientId || 'demo_spotify_client_id'
+    return config.spotify.clientId
   }
 
   private get clientSecret(): string {
-    return config.spotify.clientSecret || 'demo_spotify_client_secret'
+    return config.spotify.clientSecret
   }
 
   private get redirectUri(): string {
@@ -15,6 +15,10 @@ export class SpotifyService {
   }
 
   getAuthUrl(state = 'sounmix_auth'): string {
+    if (!this.clientId) {
+      throw new Error('SPOTIFY_CLIENT_ID is not configured in apps/api/.env')
+    }
+
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: this.clientId,
@@ -28,19 +32,8 @@ export class SpotifyService {
   }
 
   async exchangeCode(code: string): Promise<ConnectedAccount> {
-    if (!config.spotify.clientId || !config.spotify.clientSecret) {
-      // In dev fallback mode if credentials aren't configured yet
-      const fallbackAccount: ConnectedAccount = {
-        id: 'acc_spotify',
-        platform: 'spotify',
-        name: 'Spotify',
-        connected: true,
-        platformUserId: 'spotify_user_live',
-        userDisplayName: 'Spotify User',
-        scopes: config.spotify.scopes.split(' '),
-      }
-      liveStore.setAccount('spotify', fallbackAccount)
-      return fallbackAccount
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error('Spotify Client ID or Secret is missing in apps/api/.env')
     }
 
     const authHeader = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')
@@ -91,12 +84,8 @@ export class SpotifyService {
 
   async getValidToken(): Promise<string | null> {
     const account = liveStore.getAccount('spotify')
-    if (!account || !account.connected) {
+    if (!account || !account.connected || !account.accessToken) {
       return null
-    }
-
-    if (!account.accessToken) {
-      return 'demo_token'
     }
 
     // Refresh if expiring within 60 seconds
@@ -150,13 +139,8 @@ export class SpotifyService {
 
   async getUserPlaylists(): Promise<LivePlaylist[]> {
     const token = await this.getValidToken()
-    if (!token || token === 'demo_token') {
-      const account = liveStore.getAccount('spotify')
-      if (!account?.connected) return []
-      return [
-        { id: 'pl_spot_1', platform: 'spotify', platformPlaylistId: 'spot_1', name: 'My Favorite Hits', trackCount: 42, owner: account.userDisplayName || 'You', isPublic: false, imageUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300' },
-        { id: 'pl_spot_2', platform: 'spotify', platformPlaylistId: 'spot_2', name: 'Workout Energy', trackCount: 28, owner: account.userDisplayName || 'You', isPublic: true, imageUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300' },
-      ]
+    if (!token) {
+      return []
     }
 
     const response = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
@@ -186,16 +170,11 @@ export class SpotifyService {
 
   async getPlaylistTracks(platformPlaylistId: string): Promise<LiveTrack[]> {
     const token = await this.getValidToken()
-    const cleanId = platformPlaylistId.replace(/^spotify_/, '')
-
-    if (!token || token === 'demo_token') {
-      return [
-        { id: `tr_${cleanId}_1`, platform: 'spotify', platformTrackId: 'spotify_track_1', title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', durationMs: 200000, isrc: 'USUG11904206', explicit: false, coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300', uri: 'spotify:track:0VjIjW4GlUZAMYd2vXMi3b' },
-        { id: `tr_${cleanId}_2`, platform: 'spotify', platformTrackId: 'spotify_track_2', title: 'Save Your Tears', artist: 'The Weeknd', album: 'After Hours', durationMs: 215000, isrc: 'USUG12000658', explicit: false, coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300', uri: 'spotify:track:5QO79kh1waicV47BqGRL3g' },
-        { id: `tr_${cleanId}_3`, platform: 'spotify', platformTrackId: 'spotify_track_3', title: 'Midnight City', artist: 'M83', album: 'Hurry Up, We’re Dreaming', durationMs: 244000, isrc: 'FRS631100304', explicit: false, coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300', uri: 'spotify:track:1eyzqe2QqGZUmfcPZtrIyt' },
-      ]
+    if (!token) {
+      return []
     }
 
+    const cleanId = platformPlaylistId.replace(/^spotify_/, '')
     const response = await fetch(`https://api.spotify.com/v1/playlists/${cleanId}/tracks?limit=100`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -229,7 +208,7 @@ export class SpotifyService {
 
   async searchTrack(query: string, isrc?: string): Promise<LiveTrack[]> {
     const token = await this.getValidToken()
-    if (!token || token === 'demo_token') {
+    if (!token) {
       return []
     }
 
@@ -259,21 +238,12 @@ export class SpotifyService {
 
   async createPlaylist(name: string, description = 'Created with Sounmix', isPublic = false): Promise<LivePlaylist> {
     const token = await this.getValidToken()
+    if (!token) {
+      throw new Error('Cannot create playlist: Spotify account is not connected')
+    }
+
     const account = liveStore.getAccount('spotify')
     const userId = account?.platformUserId || 'me'
-
-    if (!token || token === 'demo_token') {
-      return {
-        id: `pl_spotify_${Date.now()}`,
-        platform: 'spotify',
-        platformPlaylistId: `spot_created_${Date.now()}`,
-        name,
-        description,
-        trackCount: 0,
-        owner: 'You',
-        isPublic,
-      }
-    }
 
     const response = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
       method: 'POST',
@@ -304,9 +274,11 @@ export class SpotifyService {
 
   async addTracksToPlaylist(platformPlaylistId: string, trackUris: string[]): Promise<boolean> {
     const token = await this.getValidToken()
-    const cleanId = platformPlaylistId.replace(/^spotify_/, '')
+    if (!token) {
+      throw new Error('Cannot add tracks: Spotify account is not connected')
+    }
 
-    if (!token || token === 'demo_token') return true
+    const cleanId = platformPlaylistId.replace(/^spotify_/, '')
 
     // Spotify allows max 100 tracks per request
     const batchSize = 100
@@ -331,10 +303,11 @@ export class SpotifyService {
 
   async removeTracksFromPlaylist(platformPlaylistId: string, trackUris: string[]): Promise<boolean> {
     const token = await this.getValidToken()
+    if (!token) {
+      throw new Error('Cannot remove tracks: Spotify account is not connected')
+    }
+
     const cleanId = platformPlaylistId.replace(/^spotify_/, '')
-
-    if (!token || token === 'demo_token') return true
-
     const tracksObj = trackUris.map((uri) => ({ uri }))
     const res = await fetch(`https://api.spotify.com/v1/playlists/${cleanId}/tracks`, {
       method: 'DELETE',
