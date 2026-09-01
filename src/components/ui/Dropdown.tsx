@@ -1,0 +1,1 @@
+export function Dropdown({ options }: { options: string[] }) { return <select className="rounded-2xl border border-ink/10 bg-cloud px-4 py-3 font-bold">{options.map((o) => <option key={o} value={o}>{o}</option>)}</select> }
