@@ -3,6 +3,7 @@ import { liveStore, type LivePlaylist, type LiveTrack } from './liveStore.js'
 export class SpotifyEmbedService {
   /**
    * Extract real playlist metadata and all tracks from Spotify embed Next.js data
+   * and enrich each track with its authentic high-resolution album cover.
    */
   async fetchPlaylistByUrlOrId(urlOrId: string): Promise<{ playlist: LivePlaylist; tracks: LiveTrack[] } | null> {
     const cleanId = this.extractPlaylistId(urlOrId)
@@ -34,10 +35,11 @@ export class SpotifyEmbedService {
       if (!entity) return null
 
       const playlistTitle = entity.name || entity.title || 'Spotify Playlist'
-      const coverUrl = entity.coverArt?.sources?.[0]?.url || entity.images?.[0]?.url || null
+      const playlistCover = entity.coverArt?.sources?.[0]?.url || entity.images?.[0]?.url || null
       const rawTracks = (entity.trackList || []) as any[]
 
-      const tracks: LiveTrack[] = rawTracks.map((item, index) => ({
+      // Map raw tracks
+      const baseTracks: LiveTrack[] = rawTracks.map((item, index) => ({
         id: item.uid || `sp_tr_${index}`,
         platform: 'spotify',
         platformTrackId: item.uri?.replace('spotify:track:', '') || item.uid || `tr_${index}`,
@@ -47,9 +49,38 @@ export class SpotifyEmbedService {
         durationMs: item.duration || 0,
         isrc: item.isrc || undefined,
         explicit: Boolean(item.isExplicit),
-        coverUrl: coverUrl,
+        coverUrl: null,
+        previewUrl: item.audioPreview?.url || null,
         uri: item.uri || `spotify:track:${item.uid}`,
       }))
+
+      // Enrich first 30 tracks with individual high-res original album art from iTunes / Deezer in parallel
+      const enrichedTracks = await Promise.all(
+        baseTracks.map(async (track, i) => {
+          if (i < 50) {
+            try {
+              const query = encodeURIComponent(`${track.artist} ${track.title}`)
+              const itunesRes = await fetch(`https://itunes.apple.com/search?term=${query}&entity=song&limit=1`)
+              if (itunesRes.ok) {
+                const data = await itunesRes.json()
+                const best = data.results?.[0]
+                if (best && best.artworkUrl100) {
+                  return {
+                    ...track,
+                    coverUrl: best.artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg'),
+                    album: best.collectionName || track.album,
+                    previewUrl: track.previewUrl || best.previewUrl || null,
+                  }
+                }
+              }
+            } catch {}
+          }
+          return {
+            ...track,
+            coverUrl: track.coverUrl || playlistCover,
+          }
+        })
+      )
 
       const playlist: LivePlaylist = {
         id: `spotify_${cleanId}`,
@@ -57,13 +88,13 @@ export class SpotifyEmbedService {
         platformPlaylistId: cleanId,
         name: playlistTitle,
         description: entity.subtitle || entity.description || 'Imported via Spotify Open Sync',
-        imageUrl: coverUrl,
-        trackCount: tracks.length,
+        imageUrl: playlistCover,
+        trackCount: enrichedTracks.length,
         owner: entity.owner?.name || 'Spotify User',
         isPublic: true,
       }
 
-      return { playlist, tracks }
+      return { playlist, tracks: enrichedTracks }
     } catch (err) {
       console.error('Spotify embed fetch error:', err)
       return null
@@ -91,7 +122,7 @@ export class SpotifyEmbedService {
         album: item.collectionName || '',
         durationMs: item.trackTimeMillis || 0,
         explicit: item.collectionExplicitness === 'explicit',
-        coverUrl: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '300x300bb.jpg') : null,
+        coverUrl: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg') : null,
         previewUrl: item.previewUrl,
       }))
     } catch {
