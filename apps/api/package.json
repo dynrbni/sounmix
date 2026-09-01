@@ -7,16 +7,20 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "cors": "latest",
     "dotenv": "latest",
     "express": "latest",
     "helmet": "latest",
+    "jsonwebtoken": "^9.0.3",
     "nodemailer": "latest",
     "zod": "latest"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "latest",
     "@types/express": "latest",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "latest",
     "@types/nodemailer": "latest",
     "tsx": "latest",
