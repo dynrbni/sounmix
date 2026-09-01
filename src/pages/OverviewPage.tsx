@@ -395,17 +395,30 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
                 Connect your Apple Music account to create destination playlists and transfer songs directly into your library.
               </p>
 
-              <div className="rounded-2xl bg-cloud p-4 text-xs font-bold text-ink/60 space-y-2">
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="text-xs font-black text-ink/60">Apple ID / Name</span>
+                  <input
+                    type="text"
+                    value={appleUserToken}
+                    onChange={(e) => setAppleUserToken(e.target.value)}
+                    placeholder="e.g. Dean Rabbani (or deanrabbani20@gmail.com)"
+                    className="mt-1 w-full rounded-2xl border border-ink/10 bg-cloud px-4 py-3 text-sm font-bold outline-none focus:border-rose-500"
+                  />
+                </label>
+              </div>
+
+              <div className="rounded-2xl bg-cloud p-4 text-xs font-bold text-ink/60 space-y-1.5">
                 <p className="flex items-center gap-2 text-ink font-black">
-                  <CheckCircle2 size={16} className="text-emerald-600" /> Instant Library Access
+                  <CheckCircle2 size={16} className="text-emerald-600" /> Instant Apple Music Library Sync
                 </p>
                 <p className="leading-5">
-                  Sounmix matches Spotify songs against the official Apple Music catalog and adds them into your custom Apple Music playlists.
+                  Sounmix creates destination playlists and matches songs with official Apple Music Catalog IDs for seamless playback.
                 </p>
               </div>
 
               {appleSuccessMsg && (
-                <div className="rounded-2xl bg-emerald-50 p-4 text-xs font-black text-emerald-700 flex items-center gap-2">
+                <div className="rounded-2xl bg-emerald-50 p-4 text-xs font-black text-emerald-700 flex items-center gap-2 animate-bounce">
                   <CheckCircle2 size={16} /> {appleSuccessMsg}
                 </div>
               )}
@@ -416,7 +429,7 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
                   onClick={handleConnectAppleMusic}
                   className="w-full rounded-full bg-gradient-to-r from-rose-600 to-pink-600 py-4 font-black text-white shadow-card transition-all hover:opacity-95 disabled:opacity-50"
                 >
-                  {connectingApple ? 'Authorizing Apple Music...' : 'Authorize & Connect Apple Music'}
+                  {connectingApple ? 'Connecting Apple Music...' : 'Connect Apple Music Now'}
                 </button>
 
                 <button
@@ -427,6 +440,7 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
                 </button>
               </div>
             </div>
+
           </div>
         </div>
       )}
