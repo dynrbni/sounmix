@@ -70,7 +70,7 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
         window.location.href = res.data.url
         return
       }
-    } catch {}
+    } catch { }
     window.location.href = `${apiUrl}/spotify/login`
   }
 
@@ -129,14 +129,6 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
               <button onClick={() => onNavigate?.('Duplicates')} className="rounded-full bg-white/10 px-5 py-3 font-black text-white hover:bg-white/20">
                 Scan duplicates
               </button>
-            </div>
-          </div>
-          <div className="rounded-[1.8rem] bg-white/10 p-5">
-            <p className="font-black text-white/70">Library Health</p>
-            <div className="mt-5 space-y-4">
-              <Progress label="Connected platforms" value={`${connectedCount}/2`} width={connectedCount === 2 ? 'w-full' : connectedCount === 1 ? 'w-1/2' : 'w-0'} />
-              <Progress label="Synced tracks" value={`${totalTracks} real tracks`} width="w-4/5" />
-              <Progress label="Transfer success" value="98%" width="w-[98%]" />
             </div>
           </div>
         </div>

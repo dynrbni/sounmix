@@ -12,10 +12,32 @@ export class TransferEngine {
   ): Promise<TransferJob> {
     const id = `job_${Date.now()}`
 
-    // Fetch source tracks
-    const sourceTracks = sourcePlatform === 'spotify'
-      ? await spotifyService.getPlaylistTracks(sourcePlaylistId)
-      : await appleMusicService.getPlaylistTracks(sourcePlaylistId)
+    // Fetch source tracks from liveStore, embedService, or platform APIs
+    let sourceTracks: LiveTrack[] = []
+    const cleanId = sourcePlaylistId.replace(/^spotify_/, '').replace(/^apple_/, '')
+    const stored = liveStore.getPlaylistTracks(`spotify_${cleanId}`) || liveStore.getPlaylistTracks(sourcePlaylistId)
+
+    if (stored && stored.length > 0) {
+      sourceTracks = stored
+    } else if (sourcePlatform === 'spotify') {
+      try {
+        sourceTracks = await spotifyService.getPlaylistTracks(sourcePlaylistId)
+      } catch {
+        sourceTracks = []
+      }
+
+      if (sourceTracks.length === 0) {
+        const embedRes = await (await import('./spotifyEmbedService.js')).spotifyEmbedService.fetchPlaylistByUrlOrId(cleanId)
+        if (embedRes) {
+          sourceTracks = embedRes.tracks
+          liveStore.setPlaylist(embedRes.playlist, embedRes.tracks)
+        }
+      }
+    } else {
+      sourceTracks = await appleMusicService.getPlaylistTracks(sourcePlaylistId)
+    }
+
+
 
     const job: TransferJob = {
       id,
