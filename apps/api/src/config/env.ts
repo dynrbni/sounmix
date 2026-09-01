@@ -21,11 +21,10 @@ export const config = {
     expiresMinutes: Number(getEnv('OTP_EXPIRES_MINUTES', '10')),
   },
   jwtSecret: getEnv('JWT_SECRET', 'sounmix_super_secret_jwt_key_2026_music_toolbox'),
-
   spotify: {
-    clientId: getEnv('SPOTIFY_CLIENT_ID'),
-    clientSecret: getEnv('SPOTIFY_CLIENT_SECRET'),
-    redirectUri: getEnv('SPOTIFY_REDIRECT_URI', 'http://localhost:4000/api/v1/spotify/callback'),
+    get clientId() { return getEnv('SPOTIFY_CLIENT_ID') },
+    get clientSecret() { return getEnv('SPOTIFY_CLIENT_SECRET') },
+    get redirectUri() { return getEnv('SPOTIFY_REDIRECT_URI', 'http://localhost:4000/api/v1/spotify/callback') },
     scopes: [
       'user-read-private',
       'user-read-email',
@@ -43,5 +42,6 @@ export const config = {
     keyId: getEnv('APPLE_KEY_ID'),
   },
 }
+
 
 
