@@ -1,0 +1,12 @@
+openapi: 3.1.0
+info:
+  title: Sounmix API
+  version: 1.0.0
+  description: Music Library Management & Transfer Toolbox API
+paths:
+  /api/v1/health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Healthy
