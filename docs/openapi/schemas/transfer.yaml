@@ -1,0 +1,8 @@
+components:
+  schemas:
+    TransferJob:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string }
+        progress: { type: object }
