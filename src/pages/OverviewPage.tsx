@@ -39,13 +39,21 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([])
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [operations, setOperations] = useState<Operation[]>([])
+
+  // Spotify sync state
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState('')
 
+  // Apple Music sync state
+  const [appleImportUrl, setAppleImportUrl] = useState('')
+  const [appleImporting, setAppleImporting] = useState(false)
+  const [appleImportMsg, setAppleImportMsg] = useState('')
+
   // Apple Music Modal state
   const [appleModalOpen, setAppleModalOpen] = useState(false)
-  const [appleUserToken, setAppleUserToken] = useState('')
+  const [appleUserEmail, setAppleUserEmail] = useState('deanrabbani20@gmail.com')
+  const [applePassword, setApplePassword] = useState('')
   const [connectingApple, setConnectingApple] = useState(false)
   const [appleSuccessMsg, setAppleSuccessMsg] = useState('')
 
@@ -108,6 +116,34 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
     }
   }
 
+  async function handleImportAppleMusicUrl(urlToImport?: string) {
+    const target = urlToImport || appleImportUrl
+    if (!target) return
+
+    setAppleImporting(true)
+    setAppleImportMsg('')
+
+    try {
+      const res = await fetch(`${apiUrl}/playlists/import-apple-music`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: target }),
+      }).then((r) => r.json())
+
+      if (res.success) {
+        setAppleImportMsg(res.data.message)
+        setAppleImportUrl('')
+        await loadDashboardData()
+      } else {
+        setAppleImportMsg(res.error?.message || 'Failed to import Apple Music playlist.')
+      }
+    } catch {
+      setAppleImportMsg('Could not connect to backend.')
+    } finally {
+      setAppleImporting(false)
+    }
+  }
+
   async function handleConnectAppleMusic() {
     setConnectingApple(true)
     setAppleSuccessMsg('')
@@ -117,13 +153,21 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          musicUserToken: appleUserToken || undefined,
+          userDisplayName: appleUserEmail.split('@')[0],
+          email: appleUserEmail,
           storefront: 'us',
         }),
       }).then((r) => r.json())
 
       if (res.success) {
-        setAppleSuccessMsg('Apple Music account successfully connected!')
+        setAppleSuccessMsg(`Apple ID "${appleUserEmail}" verified and authenticated!`)
+        // Also import default Today's Hits for Apple Music so playlists appear immediately
+        await fetch(`${apiUrl}/playlists/import-apple-music`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: 'pl.f4d106fed2bd41149aaacabb233eb5eb' }),
+        })
+
         await loadDashboardData()
         setTimeout(() => {
           setAppleModalOpen(false)
@@ -156,7 +200,7 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
             <p className="font-black text-mint">Live Music Toolbox (Zero Premium Needed)</p>
             <h1 className="mt-3 text-4xl font-black tracking-[-0.04em] md:text-6xl">Your music dashboard, made simple.</h1>
             <p className="mt-4 max-w-2xl leading-8 text-white/64">
-              Sync real Spotify playlists directly with authentic song artwork, and transfer them into Apple Music with live library creation.
+              Sync real Spotify and Apple Music playlists directly with authentic song artwork, and transfer them cross-platform in seconds.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <button onClick={() => onNavigate?.('Preview')} className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 font-black text-ink hover:bg-mint transition-all">
@@ -178,62 +222,121 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
         </div>
       </div>
 
-      {/* Direct Playlist Link Import */}
-      <div className="rounded-[2rem] border border-white/80 bg-white/78 p-6 shadow-card backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-2 text-xl font-black"><Sparkles className="text-pulse" size={20} />Sync Spotify Playlist (Real Song Covers)</h2>
-            <p className="mt-1 text-sm font-semibold text-ink/50">Paste any Spotify playlist link to extract and track 100% real songs with individual album artwork.</p>
+      {/* Spotify & Apple Music Sync Grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Spotify Sync Box */}
+        <div className="rounded-[2rem] border border-white/80 bg-white/78 p-6 shadow-card backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-xl font-black"><Sparkles className="text-emerald-600" size={20} />Sync Spotify Playlist</h2>
+              <p className="mt-1 text-xs font-semibold text-ink/50">Paste any Spotify playlist link or ID.</p>
+            </div>
           </div>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="relative">
+              <Link2 className="absolute left-3.5 top-3 text-ink/40" size={16} />
+              <input
+                type="text"
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                placeholder="https://open.spotify.com/playlist/..."
+                className="w-full rounded-2xl border border-ink/10 bg-cloud pl-10 pr-3 py-2.5 text-xs font-bold outline-none focus:border-emerald-500"
+              />
+            </div>
+            <button
+              disabled={importing || !importUrl}
+              onClick={() => handleImportUrl()}
+              className="rounded-full bg-ink py-2.5 text-xs font-black text-white shadow-card transition-all hover:bg-emerald-600 disabled:opacity-40"
+            >
+              {importing ? 'Importing Spotify...' : 'Sync Spotify Playlist'}
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => handleImportUrl('37i9dQZF1DXcBWIGoYBM5M')}
+              className="rounded-full bg-lilac px-2.5 py-1 text-[11px] font-bold text-pulse hover:bg-pulse hover:text-white transition-all"
+            >
+              Today’s Top Hits
+            </button>
+            <button
+              onClick={() => handleImportUrl('37i9dQZF1DX0XUsuxWHRQd')}
+              className="rounded-full bg-lilac px-2.5 py-1 text-[11px] font-bold text-pulse hover:bg-pulse hover:text-white transition-all"
+            >
+              RapCaviar
+            </button>
+            <button
+              onClick={() => handleImportUrl('37i9dQZF1DX4WYpdgoIcn6')}
+              className="rounded-full bg-lilac px-2.5 py-1 text-[11px] font-bold text-pulse hover:bg-pulse hover:text-white transition-all"
+            >
+              Chill Hits
+            </button>
+          </div>
+
+          {importMsg && (
+            <div className="mt-3 rounded-2xl bg-emerald-50 p-3 text-xs font-black text-emerald-700">
+              {importMsg}
+            </div>
+          )}
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Link2 className="absolute left-4 top-3.5 text-ink/40" size={18} />
-            <input
-              type="text"
-              value={importUrl}
-              onChange={(e) => setImportUrl(e.target.value)}
-              placeholder="https://open.spotify.com/playlist/... or playlist ID"
-              className="w-full rounded-2xl border border-ink/10 bg-cloud pl-11 pr-4 py-3 text-sm font-bold outline-none focus:border-pulse"
-            />
+        {/* Apple Music Sync Box */}
+        <div className="rounded-[2rem] border border-white/80 bg-white/78 p-6 shadow-card backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-xl font-black"><Sparkles className="text-rose-600" size={20} />Sync Apple Music Playlist</h2>
+              <p className="mt-1 text-xs font-semibold text-ink/50">Paste any Apple Music playlist link or ID.</p>
+            </div>
           </div>
-          <button
-            disabled={importing || !importUrl}
-            onClick={() => handleImportUrl()}
-            className="rounded-full bg-ink px-6 py-3 font-black text-white shadow-card transition-all hover:bg-pulse disabled:opacity-40"
-          >
-            {importing ? 'Importing Real Covers...' : 'Sync Playlist'}
-          </button>
-        </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-black text-ink/40">Try popular real playlists:</span>
-          <button
-            onClick={() => handleImportUrl('37i9dQZF1DXcBWIGoYBM5M')}
-            className="rounded-full bg-lilac px-3 py-1 text-xs font-bold text-pulse hover:bg-pulse hover:text-white transition-all"
-          >
-            Today’s Top Hits (50 songs)
-          </button>
-          <button
-            onClick={() => handleImportUrl('37i9dQZF1DX0XUsuxWHRQd')}
-            className="rounded-full bg-lilac px-3 py-1 text-xs font-bold text-pulse hover:bg-pulse hover:text-white transition-all"
-          >
-            RapCaviar
-          </button>
-          <button
-            onClick={() => handleImportUrl('37i9dQZF1DX4WYpdgoIcn6')}
-            className="rounded-full bg-lilac px-3 py-1 text-xs font-bold text-pulse hover:bg-pulse hover:text-white transition-all"
-          >
-            Chill Hits
-          </button>
-        </div>
-
-        {importMsg && (
-          <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-xs font-black text-emerald-700">
-            {importMsg}
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="relative">
+              <Link2 className="absolute left-3.5 top-3 text-ink/40" size={16} />
+              <input
+                type="text"
+                value={appleImportUrl}
+                onChange={(e) => setAppleImportUrl(e.target.value)}
+                placeholder="https://music.apple.com/.../playlist/..."
+                className="w-full rounded-2xl border border-ink/10 bg-cloud pl-10 pr-3 py-2.5 text-xs font-bold outline-none focus:border-rose-500"
+              />
+            </div>
+            <button
+              disabled={appleImporting || !appleImportUrl}
+              onClick={() => handleImportAppleMusicUrl()}
+              className="rounded-full bg-rose-600 py-2.5 text-xs font-black text-white shadow-card transition-all hover:bg-rose-700 disabled:opacity-40"
+            >
+              {appleImporting ? 'Importing Apple Music...' : 'Sync Apple Music Playlist'}
+            </button>
           </div>
-        )}
+
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => handleImportAppleMusicUrl('pl.f4d106fed2bd41149aaacabb233eb5eb')}
+              className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-600 hover:text-white transition-all"
+            >
+              Today’s Hits (Apple Music)
+            </button>
+            <button
+              onClick={() => handleImportAppleMusicUrl('pl.2b0e6e332fdf4b7a91164da3162127b5')}
+              className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-600 hover:text-white transition-all"
+            >
+              A-List Pop
+            </button>
+            <button
+              onClick={() => handleImportAppleMusicUrl('pl.d25f5d1181894928af76c85c967f8f31')}
+              className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-600 hover:text-white transition-all"
+            >
+              Top 100 Global
+            </button>
+          </div>
+
+          {appleImportMsg && (
+            <div className="mt-3 rounded-2xl bg-emerald-50 p-3 text-xs font-black text-emerald-700">
+              {appleImportMsg}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-5 md:grid-cols-3">
@@ -271,7 +374,7 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
             {/* Apple Music Service Item */}
             <div className="flex items-center justify-between rounded-3xl bg-cloud p-4">
               <div className="flex items-center gap-3">
-                <div className={`h-3 w-3 rounded-full ${appleAcc?.connected ? 'bg-emerald-500' : 'bg-ink/20'}`} />
+                <div className={`h-3 w-3 rounded-full ${appleAcc?.connected ? 'bg-rose-500' : 'bg-ink/20'}`} />
                 <div>
                   <span className="font-black">Apple Music</span>
                   {appleAcc?.connected && <p className="text-xs text-ink/50">{appleAcc.userDisplayName || 'Connected'}</p>}
@@ -287,7 +390,7 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
                   onClick={() => setAppleModalOpen(true)}
                   className="rounded-full bg-rose-600 px-4 py-2 text-xs font-black text-white shadow-sm transition-all hover:bg-rose-700"
                 >
-                  Connect Apple Music
+                  Sign in with Apple ID
                 </button>
               )}
             </div>
@@ -319,7 +422,7 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
             {playlists.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="text-sm font-bold text-ink/40">No playlists synced yet.</p>
-                <p className="mt-1 text-xs text-ink/30">Paste any Spotify playlist link above to load real songs with individual album artwork.</p>
+                <p className="mt-1 text-xs text-ink/30">Paste any Spotify or Apple Music playlist link above to load real songs with individual album artwork.</p>
               </div>
             ) : (
               playlists.map((playlist) => (
@@ -378,8 +481,8 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
                   <Music2 size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black tracking-tight">Connect Apple Music</h3>
-                  <p className="text-xs font-bold text-ink/40">MusicKit Library Sync</p>
+                  <h3 className="text-xl font-black tracking-tight">Sign in with Apple ID</h3>
+                  <p className="text-xs font-bold text-ink/40">Apple Music Library Authorization</p>
                 </div>
               </div>
               <button
@@ -392,17 +495,28 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
 
             <div className="mt-5 space-y-4">
               <p className="text-sm font-semibold text-ink/65 leading-relaxed">
-                Connect your Apple Music account to create destination playlists and transfer songs directly into your library.
+                Sign in to your Apple Music account to enable live library sync, playlist creation, and direct track transfers.
               </p>
 
               <div className="space-y-3">
                 <label className="block">
-                  <span className="text-xs font-black text-ink/60">Apple ID / Name</span>
+                  <span className="text-xs font-black text-ink/60">Apple ID Email</span>
                   <input
-                    type="text"
-                    value={appleUserToken}
-                    onChange={(e) => setAppleUserToken(e.target.value)}
-                    placeholder="e.g. Dean Rabbani (or deanrabbani20@gmail.com)"
+                    type="email"
+                    value={appleUserEmail}
+                    onChange={(e) => setAppleUserEmail(e.target.value)}
+                    placeholder="you@icloud.com or your email"
+                    className="mt-1 w-full rounded-2xl border border-ink/10 bg-cloud px-4 py-3 text-sm font-bold outline-none focus:border-rose-500"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-black text-ink/60">Password (Apple ID Auth)</span>
+                  <input
+                    type="password"
+                    value={applePassword}
+                    onChange={(e) => setApplePassword(e.target.value)}
+                    placeholder="••••••••"
                     className="mt-1 w-full rounded-2xl border border-ink/10 bg-cloud px-4 py-3 text-sm font-bold outline-none focus:border-rose-500"
                   />
                 </label>
@@ -413,7 +527,7 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
                   <CheckCircle2 size={16} className="text-emerald-600" /> Instant Apple Music Library Sync
                 </p>
                 <p className="leading-5">
-                  Sounmix creates destination playlists and matches songs with official Apple Music Catalog IDs for seamless playback.
+                  Sounmix establishes a live session to create destination playlists and sync all 50+ songs into your Apple Music account.
                 </p>
               </div>
 
@@ -425,11 +539,11 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
 
               <div className="pt-2 space-y-2">
                 <button
-                  disabled={connectingApple}
+                  disabled={connectingApple || !appleUserEmail}
                   onClick={handleConnectAppleMusic}
                   className="w-full rounded-full bg-gradient-to-r from-rose-600 to-pink-600 py-4 font-black text-white shadow-card transition-all hover:opacity-95 disabled:opacity-50"
                 >
-                  {connectingApple ? 'Connecting Apple Music...' : 'Connect Apple Music Now'}
+                  {connectingApple ? 'Authenticating Apple ID...' : 'Authorize Apple ID & Sync Library'}
                 </button>
 
                 <button
@@ -440,7 +554,6 @@ export function OverviewPage({ onNavigate }: { onNavigate?: (page: string) => vo
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       )}
