@@ -19,17 +19,17 @@ export class SpotifyService {
       throw new Error('SPOTIFY_CLIENT_ID is not configured in apps/api/.env')
     }
 
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: this.clientId,
-      scope: config.spotify.scopes,
-      redirect_uri: this.redirectUri,
-      state,
-      show_dialog: 'true',
-    })
+    const query = [
+      `response_type=code`,
+      `client_id=${encodeURIComponent(this.clientId.trim())}`,
+      `scope=${encodeURIComponent(config.spotify.scopes)}`,
+      `redirect_uri=${encodeURIComponent(this.redirectUri.trim())}`,
+      `state=${encodeURIComponent(state)}`,
+    ].join('&')
 
-    return `https://accounts.spotify.com/authorize?${params.toString()}`
+    return `https://accounts.spotify.com/authorize?${query}`
   }
+
 
   async exchangeCode(code: string): Promise<ConnectedAccount> {
     if (!this.clientId || !this.clientSecret) {
