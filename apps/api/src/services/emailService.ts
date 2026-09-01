@@ -4,6 +4,11 @@ import { renderOtpEmail } from '../templates/otpEmail.js'
 
 export async function sendOtpEmail(email: string, otp: string) {
   const hasSmtpConfig = Boolean(config.smtp.host && config.smtp.user && config.smtp.pass)
+  const smtpPass = config.smtp.pass?.replace(/\s+/g, '')
+  const fromAddress = config.smtp.user
+    ? `Sounmix OTP <${config.smtp.user}>`
+    : (config.smtp.from || 'Sounmix <no-reply@sounmix.app>')
+
   const htmlContent = renderOtpEmail({ otp, expiresMinutes: config.otp.expiresMinutes, appUrl: config.appUrl })
   const textContent = `Your Sounmix verification code is ${otp}. This code expires in ${config.otp.expiresMinutes} minutes.`
 
@@ -22,14 +27,14 @@ export async function sendOtpEmail(email: string, otp: string) {
         secure: config.smtp.secure,
         auth: {
           user: config.smtp.user,
-          pass: config.smtp.pass,
+          pass: smtpPass,
         },
       })
 
       await transporter.verify()
 
       const info = await transporter.sendMail({
-        from: config.smtp.from,
+        from: fromAddress,
         to: email,
         subject: 'Your Sounmix verification code',
         html: htmlContent,
