@@ -8,8 +8,9 @@ export interface UserJwtPayload {
 }
 
 export function signUserToken(payload: UserJwtPayload): string {
-  return jwt.sign(payload, config.jwtSecret, { expiresIn: '30d' })
+  return jwt.sign(payload, config.jwtSecret, { expiresIn: '7d' })
 }
+
 
 export function verifyUserToken(token: string): UserJwtPayload | null {
   try {

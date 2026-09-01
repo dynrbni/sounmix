@@ -90,13 +90,14 @@ authRouter.post('/otp/verify', (request, response, next) => {
       displayName,
     })
 
-    // Set cookie for 30 days
+    // Set cookie for 7 days
     response.cookie('sounmix_token', token, {
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: false,
       sameSite: 'lax',
       path: '/',
     })
+
 
     response.json({
       success: true,
