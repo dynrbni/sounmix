@@ -1,18 +1,58 @@
 import { Router } from 'express'
-import { accounts, type Platform } from '../services/demoData.js'
-
+import { liveStore, type Platform } from '../services/liveStore.js'
+import { spotifyService } from '../services/spotifyService.js'
+import { appleMusicService } from '../services/appleMusicService.js'
+import { config } from '../config/env.js'
 
 export const accountsRouter = Router({ mergeParams: true })
 
+accountsRouter.get('/spotify/login', (_request, response) => {
+  const url = spotifyService.getAuthUrl()
+  response.redirect(url)
+})
+
+accountsRouter.get('/spotify/auth-url', (_request, response) => {
+  const url = spotifyService.getAuthUrl()
+  response.json({ success: true, data: { url } })
+})
+
+accountsRouter.get('/spotify/callback', async (request, response) => {
+  const code = request.query.code as string | undefined
+  const error = request.query.error as string | undefined
+
+  if (error || !code) {
+    response.redirect(`${config.appUrl}/?error=${encodeURIComponent(error || 'Spotify authorization cancelled')}`)
+    return
+  }
+
+  try {
+    await spotifyService.exchangeCode(code)
+    response.redirect(`${config.appUrl}/?connected=spotify`)
+  } catch (err) {
+    response.redirect(`${config.appUrl}/?error=${encodeURIComponent((err as Error).message)}`)
+  }
+})
+
+accountsRouter.post('/apple-music/connect', async (request, response, next) => {
+  try {
+    const { musicUserToken, storefront } = request.body
+    const account = await appleMusicService.connectAccount(musicUserToken || 'demo_token', storefront)
+    response.json({ success: true, data: account })
+  } catch (error) {
+    next(error)
+  }
+})
+
 accountsRouter.get('/', (_request, response) => {
-  response.json({ success: true, data: accounts })
+  const accountsList = liveStore.getAllAccounts()
+  response.json({ success: true, data: accountsList })
 })
 
 accountsRouter.get('/:platform/account', (request, response) => {
-  const platform = request.params.platform
-  const account = accounts.find((item) => item.platform === platform)
+  const platform = request.params.platform as Platform
+  const account = liveStore.getAccount(platform)
 
-  if (!account) {
+  if (!account || !account.connected) {
     response.status(404).json({
       success: false,
       error: { code: 'ACCOUNT_NOT_CONNECTED', message: `No ${platform} account connected` },
@@ -24,10 +64,10 @@ accountsRouter.get('/:platform/account', (request, response) => {
 })
 
 accountsRouter.get('/:platform', (request, response) => {
-  const platform = request.params.platform
-  const account = accounts.find((item) => item.platform === platform)
+  const platform = request.params.platform as Platform
+  const account = liveStore.getAccount(platform)
 
-  if (!account) {
+  if (!account || !account.connected) {
     response.status(404).json({
       success: false,
       error: { code: 'ACCOUNT_NOT_CONNECTED', message: `No ${platform} account connected` },
@@ -38,36 +78,20 @@ accountsRouter.get('/:platform', (request, response) => {
   response.json({ success: true, data: account })
 })
 
-accountsRouter.post('/:platform/connect', (request, response) => {
+accountsRouter.post('/:platform/connect', async (request, response) => {
   const platform = request.params.platform as Platform
-  const existing = accounts.find((item) => item.platform === platform)
-
-  if (existing) {
-    existing.connected = true
-    response.json({ success: true, data: existing })
-    return
+  if (platform === 'spotify') {
+    const account = await spotifyService.exchangeCode('demo_code')
+    response.json({ success: true, data: account })
+  } else {
+    const account = await appleMusicService.connectAccount('demo_token')
+    response.json({ success: true, data: account })
   }
-
-  const newAccount = {
-    id: `acc_${platform}`,
-    platform,
-    name: platform === 'spotify' ? 'Spotify' : 'Apple Music',
-    connected: true,
-    platformUserId: `${platform}_user_demo`,
-    userDisplayName: `Sounmix ${platform} User`,
-    scopes: platform === 'spotify' ? ['playlist-read-private', 'playlist-modify-private'] : ['music-library'],
-  }
-  accounts.push(newAccount)
-
-  response.json({ success: true, data: newAccount })
 })
 
 accountsRouter.delete('/:platform', (request, response) => {
-  const platform = request.params.platform
-  const account = accounts.find((item) => item.platform === platform)
-  if (account) {
-    account.connected = false
-  }
+  const platform = request.params.platform as Platform
+  liveStore.removeAccount(platform)
 
   response.json({
     success: true,
@@ -77,4 +101,3 @@ accountsRouter.delete('/:platform', (request, response) => {
     },
   })
 })
-
