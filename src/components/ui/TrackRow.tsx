@@ -1,0 +1,1 @@
+export function TrackRow({ title, artist, album }: { title: string; artist: string; album: string }) { return <div className="flex items-center justify-between py-3"><div><p className="font-bold">{title}</p><p className="text-xs text-ink/50">{artist} · {album}</p></div></div> }
