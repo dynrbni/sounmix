@@ -1,0 +1,7 @@
+components:
+  schemas:
+    DuplicateResult:
+      type: object
+      properties:
+        playlistId: { type: string }
+        duplicateCount: { type: integer }
