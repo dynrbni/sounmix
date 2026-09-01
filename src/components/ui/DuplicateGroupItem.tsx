@@ -1,0 +1,1 @@
+export function DuplicateGroupItem({ title, artist, count }: { title: string; artist: string; count: number }) { return <div className="rounded-2xl border border-ink/10 p-4"><p className="font-bold">{title} - {artist}</p><p className="text-xs text-ink/50">{count} copies detected</p></div> }
