@@ -1,0 +1,7 @@
+components:
+  schemas:
+    MergeRequest:
+      type: object
+      properties:
+        playlistIds: { type: array, items: { type: string } }
+        name: { type: string }
